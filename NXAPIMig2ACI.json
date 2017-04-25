@@ -1,0 +1,243 @@
+{
+	"variables": [],
+	"info": {
+		"name": "NX API Migration to ACI",
+		"_postman_id": "2f2a32c0-f9f9-d02c-a0c8-24c176e71132",
+		"description": "",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Nexus 1 Login",
+			"request": {
+				"url": "https://{{nexus1}}/api/aaaLogin.json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"aaaUser\":{\r\n    \"attributes\":{\r\n      \"name\":\"{{nxosUsername}}\",\r\n      \"pwd\":\"{{nxosPassword}}\"\r\n    }\r\n  }\r\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Nexus 2 Login",
+			"request": {
+				"url": "https://{{nexus2}}/api/aaaLogin.json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"aaaUser\":{\r\n    \"attributes\":{\r\n      \"name\":\"{{nxosUsername}}\",\r\n      \"pwd\":\"{{nxosPassword}}\"\r\n    }\r\n  }\r\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Extract Nexus VIP MAC EnvVariable",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"var jsonData1 = JSON.parse(responseBody);",
+							"postman.setEnvironmentVariable(\"vipMac\", jsonData1.ins_api.outputs.output.body.TABLE_grp_detail.ROW_grp_detail.sh_vmac);"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": "https://{{nexus1}}/ins",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ins_api\": {\n    \"version\": \"1.0\",\n    \"type\": \"cli_show\",\n    \"chunk\": \"0\",\n    \"sid\": \"1\",\n    \"input\": \"show hsrp group {{hsrpGroup}}\",\n    \"output_format\": \"json\"\n  }\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "ACI Login",
+			"request": {
+				"url": "https://{{apic}}/api/aaaLogin.json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"aaaUser\":{\r\n    \"attributes\":{\r\n      \"name\":\"{{username}}\",\r\n      \"pwd\":\"{{password}}\"\r\n    }\r\n  }\r\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Create ACI VIP MAC",
+			"request": {
+				"url": "https://{{apic}}/api/node/mo/uni/tn-{{tenantName}}/BD-{{bridgeDomain}}.json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fvBD\":{\n    \"attributes\":{\n      \"dn\":\"uni/tn-{{tenantName}}/BD-{{bridgeDomain}}\",\n      \"vmac\":\"{{vipMac}}\"},\n      \"children\":[]\n    }\n  }"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Create ACI BD Subnet",
+			"request": {
+				"url": "https://{{apic}}/api/node/mo/uni/tn-{{tenantName}}/BD-{{bridgeDomain}}/subnet-[{{bdSubnet}}].json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fvSubnet\":{\n    \"attributes\":{\n      \"dn\":\"uni/tn-{{tenantName}}/BD-{{bridgeDomain}}/subnet-[{{bdSubnet}}]\",\n      \"ip\":\"{{bdSubnet}}\",\n      \"scope\":\"public\",\n      \"rn\":\"subnet-[{{bdSubnet}}]\",\n      \"status\":\"created,modified\"},\n      \"children\":[]\n      }\n    }"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Create ACI BD VIP",
+			"request": {
+				"url": "https://{{apic}}/api/node/mo/uni/tn-{{tenantName}}/BD-{{bridgeDomain}}/subnet-[{{vipSubnet}}].json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fvSubnet\":{\n    \"attributes\":{\n      \"dn\":\"uni/tn-{{tenantName}}/BD-{{bridgeDomain}}/subnet-[{{vipSubnet}}]\",\n      \"ip\":\"{{vipSubnet}}\",\n      \"virtual\":\"true\",\n      \"scope\":\"public\",\n      \"rn\":\"subnet-[{{vipSubnet}}]\",\n      \"status\":\"created,modified\"},\n      \"children\":[]\n    }\n  }"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Shutdown Nexus 1",
+			"request": {
+				"url": "https://{{nexus1}}/ins",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ins_api\": {\n    \"version\": \"1.0\",\n    \"type\": \"cli_conf\",\n    \"chunk\": \"0\",\n    \"sid\": \"1\",\n    \"input\": \"configure terminal ;interface {{nxosInterface}} ;shut ;copy run start\",\n    \"output_format\": \"json\"\n  }\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Shutdown Nexus 2",
+			"request": {
+				"url": "https://{{nexus2}}/ins",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"ins_api\": {\n    \"version\": \"1.0\",\n    \"type\": \"cli_conf\",\n    \"chunk\": \"0\",\n    \"sid\": \"1\",\n    \"input\": \"configure terminal ;interface {{nxosInterface}} ;shut ;copy run start\",\n    \"output_format\": \"json\"\n  }\n}"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Enable BD Unicast Routing",
+			"request": {
+				"url": "https://{{apic}}/api/node/mo/uni/tn-{{tenantName}}/BD-{{bridgeDomain}}.json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fvBD\":{\n    \"attributes\":{\n      \"dn\":\"uni/tn-{{tenantName}}/BD-{{bridgeDomain}}\",\n      \"unicastRoute\":\"{{unicastRouting}}\"},\n      \"children\":[]\n      }\n    }"
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "Create ACI BD L3 Out",
+			"request": {
+				"url": "https://{{apic}}/api/node/mo/uni/tn-{{tenantName}}/BD-{{bridgeDomain}}.json",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"description": ""
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"fvRsBDToOut\":{\n    \"attributes\":{\"tnL3extOutName\":\"{{l3outName}}\",\n    \"status\":\"created,modified\"},\n    \"children\":[]\n    }\n  }"
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	]
+}
